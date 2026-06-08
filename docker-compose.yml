@@ -1,0 +1,43 @@
+services:
+  mock-cluster:
+    build: ./mock-cluster
+    ports: ["7100:7100"]
+    environment:
+      - PORT=7100
+
+  mcp-servers:
+    build: ./mcp-servers
+    ports: ["8100:8100"]
+    environment:
+      - MOCK_CLUSTER_URL=http://mock-cluster:7100
+      - RUNBOOKS_DIR=/app/runbooks
+      - PORT=8100
+    volumes:
+      - ./runbooks:/app/runbooks:ro
+    depends_on: [mock-cluster]
+
+  orchestrator:
+    build: ./orchestrator
+    ports: ["7200:7200"]
+    environment:
+      - PORT=7200
+      - TFY_API_KEY=${TFY_API_KEY}
+      - TFY_AI_GATEWAY_URL=${TFY_AI_GATEWAY_URL:-https://gateway.truefoundry.ai}
+      - TFY_MCP_GATEWAY_URL=${TFY_MCP_GATEWAY_URL}
+      - CLAUDE_MODEL=${CLAUDE_MODEL:-tfy-ai-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0}
+      - LLAMA_MODEL=${LLAMA_MODEL:-tfy-ai-bedrock/meta.llama3-3-70b-instruct-v1:0}
+      - MOCK_CLUSTER_URL=http://mock-cluster:7100
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+    volumes:
+      - cannon-incidents:/app/data/incidents
+    depends_on: [mock-cluster, mcp-servers]
+
+  web:
+    build: ./web
+    ports: ["3000:3000"]
+    environment:
+      - NEXT_PUBLIC_ORCH_URL=http://localhost:7200
+    depends_on: [orchestrator]
+
+volumes:
+  cannon-incidents:

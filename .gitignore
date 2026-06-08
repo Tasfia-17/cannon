@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.next/
+*.env
+.env.local
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.python-version
+data/incidents/
+*.db
+.DS_Store

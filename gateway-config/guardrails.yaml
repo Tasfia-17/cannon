@@ -1,0 +1,37 @@
+# Cannon Guardrails Configuration
+# Applied per-request via X-TFY-GUARDRAILS header (see gateway.ts + mcp-pool.ts)
+# Register these guardrails in TrueFoundry UI under AI Gateway > Controls > Guardrails
+
+guardrails:
+  # LLM input — before the prompt reaches Bedrock
+  llm_input:
+    - name: cannon/prompt-injection
+      type: tfy-prompt-injection        # Azure Prompt Shield — blocks jailbreaks
+      mode: validate
+      strategy: enforce-but-ignore-on-error
+
+  # LLM output — after Bedrock responds
+  llm_output:
+    - name: cannon/secrets-detection
+      type: tfy-secrets-detection       # Catches AWS keys, API keys, JWTs in model output
+      mode: mutate                      # Redacts rather than blocks
+      strategy: enforce-but-ignore-on-error
+
+  # MCP pre-tool — before any tool executes
+  mcp_pre_tool:
+    - name: cannon/sql-sanitizer
+      type: tfy-sql-sanitizer           # Blocks DROP, TRUNCATE, DELETE without WHERE
+      mode: validate
+      strategy: enforce
+
+    - name: cannon/read-only-policy
+      type: tfy-cedar-guardrail         # Cedar policy in cedar-read-only.cedar
+      mode: validate
+      strategy: enforce
+
+  # MCP post-tool — after tool returns, before model sees result
+  mcp_post_tool:
+    - name: cannon/secrets-detection
+      type: tfy-secrets-detection       # Redact any secrets in tool responses
+      mode: mutate
+      strategy: enforce-but-ignore-on-error

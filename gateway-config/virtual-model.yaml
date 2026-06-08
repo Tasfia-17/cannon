@@ -1,0 +1,25 @@
+# TrueFoundry AI Gateway — Virtual Model config for Cannon
+# Apply via: tfy apply -f gateway-config/virtual-model.yaml
+#
+# Primary:  Claude 3.5 Sonnet via AWS Bedrock
+# Shadow:   Llama 3.3 70B via AWS Bedrock
+# Strategy: priority-based — Claude first, Llama on failure/rate-limit
+
+routing_config:
+  type: priority-based-routing
+  load_balance_targets:
+    - target: "tfy-ai-bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0"
+      priority: 0
+      retry_config:
+        attempts: 3
+        delay: 200
+        on_status_codes: ["429", "500", "503"]
+      fallback_status_codes: ["429", "500", "502", "503"]
+      fallback_candidate: true
+    - target: "tfy-ai-bedrock/meta.llama3-3-70b-instruct-v1:0"
+      priority: 1
+      retry_config:
+        attempts: 2
+        delay: 100
+        on_status_codes: ["429", "500", "503"]
+      fallback_candidate: false
